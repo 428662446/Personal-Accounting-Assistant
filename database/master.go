@@ -56,7 +56,6 @@ func createUserDatabase(userID int64) error {
 	createTableSQL := `
 CREATE TABLE IF NOT EXISTS transactions (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	userid INTEGER NOT NULL,
 	type TEXT NOT NULL,
 	amount REAL NOT NULL,
 	category TEXT NOT NULL,

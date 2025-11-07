@@ -1,73 +1,40 @@
 package database
 
 import (
+	"AccountingAssistant/models"
 	"database/sql"
 	"fmt"
-	"os"
-	"path/filepath"
 )
 
-func RecordTransaction(masterDB *sql.DB, Name string, Type string, Amount float64, Category string, Note string) error {
-	var userId int
-	selectSQL := "SELECT id FROM users WHERE username = ?"
-	err := masterDB.QueryRow(selectSQL, Name).Scan(&userId)
-	if err != nil {
-		return fmt.Errorf("用户不存在")
-	}
-	userDBPath := filepath.Join("database_files", "usersdata", fmt.Sprintf("user_%d.db", userId))
-	if _, err := os.Stat(userDBPath); os.IsNotExist(err) {
-		return fmt.Errorf("用户个人数据库不存在")
-	}
+func RecordTransaction(userDB *sql.DB, Type string, Amount float64, Category string, Note string) (int64, error) {
 
-	userDB, err := getUserDB(int64(userId))
+	insertSQL := "INSERT INTO transactions (type, amount, category, note) VALUES (?, ?, ?, ?)"
+	result, err := userDB.Exec(insertSQL, Type, Amount, Category, Note)
 	if err != nil {
-		return fmt.Errorf("连接用户数据库失败")
+		return 0, fmt.Errorf("插入交易失败: %v", err)
 	}
-	defer userDB.Close()
-	insertSQL := "INSERT INTO transactions (userid, type, amount, category, note) VALUES (?, ?, ?, ?, ?)"
-	_, err = userDB.Exec(insertSQL, userId, Type, Amount, Category, Note)
+	transactionId, err := result.LastInsertId()
 	if err != nil {
-		return fmt.Errorf("插入交易失败: %v", err)
+		return 0, err
 	}
-	return nil
+	return transactionId, nil
 }
 
-func ReadTransaction(masterDB *sql.DB, Name string) error {
-	var userId int
-	selectSQL := "SELECT id FROM users WHERE username = ?"
-	err := masterDB.QueryRow(selectSQL, Name).Scan(&userId)
-	if err != nil {
-		return fmt.Errorf("用户不存在")
-	}
-	userDBPath := filepath.Join("database_files", "usersdata", fmt.Sprintf("user_%d.db", userId))
-	if _, err := os.Stat(userDBPath); os.IsNotExist(err) {
-		return fmt.Errorf("用户个人数据库不存在")
-	}
-
-	userDB, err := getUserDB(int64(userId))
-	if err != nil {
-		return fmt.Errorf("连接用户数据库失败")
-	}
-	defer userDB.Close()
-
+func GetTransaction(userDB *sql.DB) ([]models.Transaction, error) {
 	rows, err := userDB.Query("SELECT id, type, amount, category, note, created_at FROM transactions ORDER BY created_at DESC")
 	if err != nil {
-		return fmt.Errorf("查询交易失败: %v", err)
+		return nil, fmt.Errorf("查询交易失败: %v", err)
 	}
 	defer rows.Close()
 
-	fmt.Printf("用户 %s 的账单:\n", Name)
+	var Transaction []models.Transaction
 	for rows.Next() {
-		var id int
-		var t string
-		var amount float64
-		var category string
-		var note string
-		var createdAt string
-		if err := rows.Scan(&id, &t, &amount, &category, &note, &createdAt); err != nil {
-			return fmt.Errorf("读取行失败: %v", err)
+		var t models.Transaction
+		if err := rows.Scan(&t.ID, &t.Type, &t.Amount, &t.Category, &t.Note, &t.CreatedAt); err != nil {
+			return nil, fmt.Errorf("读取行失败: %v", err)
 		}
-		fmt.Printf("id=%d type=%s amount=%v category=%s note=%s at=%s\n", id, t, amount, category, note, createdAt)
+		Transaction = append(Transaction, t)
 	}
-	return nil
+
+	return Transaction, nil
 }

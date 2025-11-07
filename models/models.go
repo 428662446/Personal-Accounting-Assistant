@@ -9,7 +9,6 @@ type User struct {
 
 type Transaction struct {
 	ID        int     `json:"id"`
-	UserID    int     `json:"userid"`
 	Type      string  `json:"type"`
 	Amount    float64 `json:"amount"`
 	Category  string  `json:"category"`
