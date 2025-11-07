@@ -34,6 +34,23 @@ CREATE TABLE IF NOT EXISTS users (
 		db.Close()
 		return nil, err
 	}
+
+	// 新增：创建会话表
+	createSessionTableSQL := `
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    expires DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);`
+	_, err = db.Exec(createSessionTableSQL)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("创建会话表失败: %w", err)
+	}
+
 	fmt.Println("主数据库初始化完成")
 
 	return db, nil

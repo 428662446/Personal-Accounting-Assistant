@@ -15,11 +15,7 @@ func NewTransactionService(masterDB *sql.DB) *TransactionService {
 	return &TransactionService{masterDB: masterDB}
 }
 
-func (s *TransactionService) RecordTransaction(username string, transactionType string, amount float64, category string, note string) (int64, error) {
-	userID, err := database.GetUserIDByUsername(s.masterDB, username)
-	if err != nil {
-		return 0, fmt.Errorf("用户不存在")
-	}
+func (s *TransactionService) RecordTransaction(userID int64, transactionType string, amount float64, category string, note string) (int64, error) {
 	userDB, err := database.GetUserDB(userID)
 	if err != nil {
 		return 0, fmt.Errorf("连接用户数据库失败")

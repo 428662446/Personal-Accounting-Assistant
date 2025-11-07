@@ -1,6 +1,7 @@
 package database
 
 import (
+	"AccountingAssistant/utils"
 	"database/sql"
 	"fmt"
 	"os"
@@ -23,12 +24,17 @@ func RegisterUser(masterDB *sql.DB, username, password string) (int64, error) {
 	if err != sql.ErrNoRows {
 		return 0, err
 	}
+	// 哈希密码
+	hashedPassword, err := utils.HashPassword(password)
+	if err != nil {
+		return 0, fmt.Errorf("密码加密失败: %v", err)
+	}
 
 	tx, err := masterDB.Begin() // 开始事务
 	if err != nil {
 		return 0, err
 	}
-	// 1.1 改进：确保在函数返回前处理事务
+	// 改进：确保在函数返回前处理事务
 	defer func() {
 		if err != nil {
 			tx.Rollback() // 出错时回滚
@@ -36,7 +42,7 @@ func RegisterUser(masterDB *sql.DB, username, password string) (int64, error) {
 	}()
 
 	insertSQL := "INSERT INTO users (username, password) VALUES (?, ?)"
-	result, err := tx.Exec(insertSQL, username, password)
+	result, err := tx.Exec(insertSQL, username, hashedPassword)
 	if err != nil {
 		tx.Rollback() // 出错时回滚
 		return 0, err
@@ -55,17 +61,18 @@ func RegisterUser(masterDB *sql.DB, username, password string) (int64, error) {
 }
 
 func LoginUser(masterDB *sql.DB, username string, password string) (int64, error) {
-	var pd string
+	var hashedPassword string
 	var id int64
 	selectSQL := "SELECT id, password FROM users WHERE username = ?"
-	err := masterDB.QueryRow(selectSQL, username).Scan(&id, &pd)
+	err := masterDB.QueryRow(selectSQL, username).Scan(&id, &hashedPassword)
 	if err != nil {
 		if err == sql.ErrNoRows { // 补
 			return 0, fmt.Errorf("用户不存在: %v", err)
 		}
 		return 0, fmt.Errorf("用户登录失败: %v", err)
 	}
-	if pd != password {
+	// 验证密码
+	if err := utils.VerifyPassword(hashedPassword, password); err != nil {
 		return 0, fmt.Errorf("密码错误")
 	}
 	fmt.Printf("%s 成功登录\n", username)

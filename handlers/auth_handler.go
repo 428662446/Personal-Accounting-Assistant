@@ -22,11 +22,15 @@ type LoginUserRequest struct {
 // 报错记录：cannot define new methods on non-local type
 // 修改
 type AuthHandler struct {
-	userService *services.UserService
+	userService    *services.UserService
+	sessionManager *services.DBSessionManager
 }
 
-func NewAuthHandler(userService *services.UserService) *AuthHandler {
-	return (&AuthHandler{userService})
+func NewAuthHandler(userService *services.UserService, sessionManager *services.DBSessionManager) *AuthHandler {
+	return &AuthHandler{
+		userService:    userService,
+		sessionManager: sessionManager,
+	}
 }
 func (h *AuthHandler) RegisterUser(c *gin.Context) {
 	var req RegisterUserRequest
@@ -59,9 +63,10 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 			"success": false,
 			"error":   err.Error(),
 		})
+
 		return
 	}
-	userId, err := h.userService.Login(req.UserName, req.Password)
+	userID, err := h.userService.Login(req.UserName, req.Password)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
@@ -69,9 +74,31 @@ func (h *AuthHandler) LoginUser(c *gin.Context) {
 		})
 		return
 	}
+	// 创建会话
+	sessionID := h.sessionManager.CreateSession(userID, req.UserName)
+
+	// 设置Cookie（浏览器自动保存）
+	c.SetCookie("session_id", sessionID, 24*3600, "/", "", false, true) // 24小时过期
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "登录成功",
-		"user_id": userId,
+		"user_id": userID,
+	})
+}
+
+func (h *AuthHandler) LogoutUser(c *gin.Context) {
+	// 从Cookie获取sessionID
+	sessionID, err := c.Cookie("session_id")
+	if err == nil {
+		h.sessionManager.DeleteSession(sessionID)
+	}
+
+	// 清除Cookie
+	c.SetCookie("session_id", "", -1, "/", "", false, true)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "退出成功",
 	})
 }

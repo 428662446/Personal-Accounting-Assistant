@@ -28,6 +28,3 @@ func (s *UserService) Login(username, password string) (int64, error) {
 	}
 	return id, nil
 }
-func (s *UserService) ValidateToken(token string) (int64, error) {
-	return 0, nil
-}

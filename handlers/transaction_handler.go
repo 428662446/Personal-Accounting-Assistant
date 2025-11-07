@@ -8,7 +8,6 @@ import (
 )
 
 type RecordRequest struct {
-	Username string  `form:"username" binding:"required"`
 	Type     string  `form:"type" binding:"required"`
 	Amount   float64 `form:"amount" binding:"required"`
 	Category string  `form:"category" binding:"required"`
@@ -30,7 +29,18 @@ func (h *TransactionHandler) RecordTransaction(c *gin.Context) {
 		})
 		return
 	}
-	transactionId, err := h.transactionService.RecordTransaction(req.Username, req.Type, req.Amount, req.Category, req.Note)
+
+	// 从会话中获取用户ID，而不是从请求参数
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "未登录",
+		})
+		return
+	}
+
+	transactionId, err := h.transactionService.RecordTransaction(userID.(int64), req.Type, req.Amount, req.Category, req.Note)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
