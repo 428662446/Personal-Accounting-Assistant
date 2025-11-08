@@ -1,6 +1,7 @@
-package utils
+package response
 
 import (
+	"AccountingAssistant/utils"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -20,90 +21,90 @@ func HandleError(c *gin.Context, err error) {
 	}
 
 	// 再检查是否是我们的自定义错误
-	var appErr *Error
+	var appErr *utils.Error
 	if errors.As(err, &appErr) {
 		// 处理自定义错误类型（保持你原来的逻辑）
 		switch appErr.Code {
-		case CodeUserNotFound:
+		case utils.CodeUserNotFound:
 			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"error":   "用户不存在",
 			})
-		case CodeUserAlreadyExists:
+		case utils.CodeUserAlreadyExists:
 			c.JSON(http.StatusConflict, gin.H{
 				"success": false,
 				"error":   "用户名已存在",
 			})
-		case CodeUserEmptyCredential:
+		case utils.CodeUserEmptyCredential:
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"error":   "用户名、密码不能为空",
 			})
-		case CodeUserDBNotFound:
+		case utils.CodeUserDBNotFound:
 			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"error":   "用户数据库不存在",
 			})
 
 		// 认证相关错误 11xx
-		case CodeAuthInvalidPassword:
+		case utils.CodeAuthInvalidPassword:
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"error":   "密码错误",
 			})
-		case CodeAuthNotLoggedIn:
+		case utils.CodeAuthNotLoggedIn:
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"error":   "未登录",
 			})
-		case CodeAuthLoginFailed:
+		case utils.CodeAuthLoginFailed:
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"error":   "登录失败",
 			})
-		case CodeCreateSessionFailed:
+		case utils.CodeCreateSessionFailed:
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"error":   "创建会话失败",
 			})
-		case CodeSessionNotFound, CodeInvalidSession:
+		case utils.CodeSessionNotFound, utils.CodeInvalidSession:
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"error":   "会话无效或已过期",
 			})
 
 		// 数据操作错误 12xx
-		case CodeDataEmptyContent:
+		case utils.CodeDataEmptyContent:
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"error":   "内容不能为空",
 			})
-		case CodeDataInsertFailed, CodeDataQueryFailed, CodeDataReadFailed:
+		case utils.CodeDataInsertFailed, utils.CodeDataQueryFailed, utils.CodeDataReadFailed:
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"error":   "数据操作失败，请稍后重试",
 			})
 
 		// 系统错误 13xx
-		case CodeSystemDBConnFailed, CodeSystemCreateDirFailed,
-			CodeSystemCreateTableFailed, CodeSystemEncryptFailed:
+		case utils.CodeSystemDBConnFailed, utils.CodeSystemCreateDirFailed,
+			utils.CodeSystemCreateTableFailed, utils.CodeSystemEncryptFailed:
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"error":   "系统错误，请联系管理员",
 			})
-		case CodeFileNotFound:
+		case utils.CodeFileNotFound:
 			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"error":   "文件不存在",
 			})
 
 		// 业务操作错误 14xx
-		case CodeOperationRegisterFailed:
+		case utils.CodeOperationRegisterFailed:
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"error":   "注册失败",
 			})
-		case CodeOperationRecordBillFailed:
+		case utils.CodeOperationRecordBillFailed:
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"error":   "记录账单失败",

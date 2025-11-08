@@ -3,6 +3,7 @@ package middleware
 import (
 	"AccountingAssistant/services"
 	"AccountingAssistant/utils"
+	"AccountingAssistant/web/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,14 +15,14 @@ func SessionMiddleware(sessionManager *services.DBSessionManager) gin.HandlerFun
 		// 从Cookie获取sessionID（或Header）
 		sessionID, err := c.Cookie("session_id")
 		if err != nil {
-			utils.HandleError(c, utils.ErrNotLoggedIn)
+			response.HandleError(c, utils.ErrNotLoggedIn)
 			c.Abort()
 			return
 		}
 
 		userID, username, valid := sessionManager.ValidateSession(sessionID)
 		if !valid {
-			utils.HandleError(c, utils.ErrInvalidSession)
+			response.HandleError(c, utils.ErrInvalidSession)
 			c.Abort()
 			return
 		}
@@ -36,14 +37,14 @@ func AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("userID")
 		if !exists {
-			utils.HandleError(c, utils.ErrNotLoggedIn)
+			response.HandleError(c, utils.ErrNotLoggedIn)
 			c.Abort()
 			return
 		}
 
 		// 确保userID是int64类型
 		if _, ok := userID.(int64); !ok {
-			utils.HandleError(c, utils.ErrInvalidSession)
+			response.HandleError(c, utils.ErrInvalidSession)
 			c.Abort()
 			return
 		}

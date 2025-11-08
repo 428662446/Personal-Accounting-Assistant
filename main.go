@@ -5,7 +5,8 @@ import (
 
 	"AccountingAssistant/database"
 	"AccountingAssistant/handlers"
-	"AccountingAssistant/middleware"
+	"AccountingAssistant/web/middleware"
+
 	"AccountingAssistant/services"
 
 	"github.com/gin-gonic/gin"
