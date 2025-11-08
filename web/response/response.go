@@ -91,6 +91,16 @@ func HandleError(c *gin.Context, err error) {
 				"success": false,
 				"error":   "数据操作失败，请稍后重试",
 			})
+		case utils.CodeDataDeleteFailed: // 增
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error":   "删除数据失败",
+			})
+		case utils.CodeDataUpdateFailed: // 增
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error":   "更新数据失败",
+			})
 
 		// 系统错误 13xx
 		case utils.CodeSystemDBConnFailed, utils.CodeSystemCreateDirFailed,
@@ -115,6 +125,23 @@ func HandleError(c *gin.Context, err error) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"error":   "记录账单失败",
+			})
+		case utils.CodeOperationGetBillFailed:
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "获取账单失败",
+			})
+		case utils.CodeOperationDeleteBillFailed:
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "删除账单失败",
+			})
+
+		// 参数处理相关 15xx
+		case utils.CodeInvalidParameter:
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "参数错误",
 			})
 
 		// 默认情况

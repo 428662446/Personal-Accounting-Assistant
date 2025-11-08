@@ -66,7 +66,7 @@ func LoginUser(masterDB *sql.DB, username string, password string) (int64, error
 	_, err = EnsureUserDatabase(userID)
 	if err != nil {
 		// 个人数据库不存在
-		return 0, err
+		return 0, err // // 错误已经在EnsureUserDatabase中处理过了
 
 	}
 
@@ -81,7 +81,6 @@ func LoginUser(masterDB *sql.DB, username string, password string) (int64, error
 	if err := utils.VerifyPassword(hashedPassword, password); err != nil {
 		return 0, utils.ErrInvalidPassword
 	}
-	fmt.Printf("%s 成功登录\n", username)
 
 	return userID, nil
 }

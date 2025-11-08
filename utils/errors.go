@@ -59,6 +59,8 @@ const (
 	CodeDataQueryFailed  = "1202"
 	CodeDataReadFailed   = "1203"
 	CodeDataEmptyContent = "1204"
+	CodeDataDeleteFailed = "1205" // 增
+	CodeDataUpdateFailed = "1206" // 增
 
 	// 系统错误 13xx
 	CodeSystemDBConnFailed      = "1301"
@@ -71,6 +73,11 @@ const (
 	// 业务操作错误 14xx
 	CodeOperationRegisterFailed   = "1401"
 	CodeOperationRecordBillFailed = "1402"
+	CodeOperationGetBillFailed    = "1403" // 增
+	CodeOperationDeleteBillFailed = "1404" // 增
+
+	// 增：参数处理错误 15xx
+	CodeInvalidParameter = "1501"
 )
 
 // 预定义错误(错误码 错误消息)
@@ -98,6 +105,8 @@ var (
 	ErrQueryFailed  = &Error{Code: CodeDataQueryFailed, Message: "查询数据失败"}
 	ErrReadFailed   = &Error{Code: CodeDataReadFailed, Message: "读取数据失败"}
 	ErrEmptyContent = &Error{Code: CodeDataEmptyContent, Message: "内容不能为空"}
+	ErrDeleteFailed = &Error{Code: CodeDataDeleteFailed, Message: "删除数据失败"} // 增
+	ErrUpdateFailed = &Error{Code: CodeDataUpdateFailed, Message: "更新数据失败"} // 增
 )
 
 // 系统相关
@@ -114,4 +123,11 @@ var (
 var (
 	ErrRegisterFailed   = &Error{Code: CodeOperationRegisterFailed, Message: "注册失败"}
 	ErrRecordBillFailed = &Error{Code: CodeOperationRecordBillFailed, Message: "记录账单失败"}
+	ErrGetBillFailed    = &Error{Code: CodeOperationGetBillFailed, Message: "获取账单失败"}    // 增
+	ErrDeleteBillFailed = &Error{Code: CodeOperationDeleteBillFailed, Message: "删除账单失败"} // 增
+)
+
+// 参数处理相关
+var (
+	ErrInvalidParameter = &Error{Code: CodeInvalidParameter, Message: "参数错误"}
 )

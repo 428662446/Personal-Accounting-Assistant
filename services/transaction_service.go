@@ -3,7 +3,6 @@ package services
 import (
 	"AccountingAssistant/database"
 	"AccountingAssistant/models"
-	"AccountingAssistant/utils"
 	"database/sql"
 )
 
@@ -18,28 +17,40 @@ func NewTransactionService(masterDB *sql.DB) *TransactionService {
 func (s *TransactionService) RecordTransaction(userID int64, transactionType string, amount float64, category string, note string) (int64, error) {
 	userDB, err := database.GetUserDB(userID)
 	if err != nil {
-		return 0, utils.WrapError(utils.ErrDBConnFailed, err)
+		return 0, err
 	}
 	defer userDB.Close()
 
-	transactionID, err := database.RecordTransaction(userDB, transactionType, amount, category, note)
-	if err != nil {
-		return 0, utils.WrapError(utils.ErrRecordBillFailed, err)
-	}
-	return transactionID, nil
+	return database.RecordTransaction(userDB, transactionType, amount, category, note)
 }
 
 func (s *TransactionService) GetTransactions(userID int64) ([]models.Transaction, error) {
 
 	userDB, err := database.GetUserDB(userID)
 	if err != nil {
-		return nil, utils.WrapError(utils.ErrDBConnFailed, err)
+		return nil, err
 	}
 	defer userDB.Close()
 
-	transactions, err := database.GetTransaction(userDB)
+	return database.GetTransaction(userDB)
+}
+
+func (s *TransactionService) DeleteTransaction(userID int64, transactionID int64) error {
+	userDB, err := database.GetUserDB(userID)
 	if err != nil {
-		return nil, utils.WrapError(utils.ErrQueryFailed, err)
+		return err
 	}
-	return transactions, nil
+	defer userDB.Close()
+
+	return database.DeleteTransaction(userDB, transactionID)
+}
+
+func (s *TransactionService) UpdateTransaction(userID int64, transactionID int64, updateType *string, updateAmount *float64, updateCategory *string, updateNote *string) error {
+	userDB, err := database.GetUserDB(userID)
+	if err != nil {
+		return err
+	}
+	defer userDB.Close()
+
+	return database.UpdateTransaction(userDB, transactionID, updateType, updateAmount, updateCategory, updateNote)
 }
