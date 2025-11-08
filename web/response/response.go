@@ -4,12 +4,13 @@ import (
 	"AccountingAssistant/utils"
 	"database/sql"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-// HandleError 统一的错误处理函数 - 现在在 utils 包
+// HandleError 统一的错误处理函数
 func HandleError(c *gin.Context, err error) {
 	// 先检查是否是已知的标准库错误
 	if errors.Is(err, sql.ErrNoRows) {
@@ -23,6 +24,12 @@ func HandleError(c *gin.Context, err error) {
 	// 再检查是否是我们的自定义错误
 	var appErr *utils.Error
 	if errors.As(err, &appErr) {
+		// 记录底层错误（如果有），便于排查，但不返回给客户端
+		if appErr.Err != nil {
+			log.Printf("app error: code=%s message=%s cause=%v", appErr.Code, appErr.Message, appErr.Err)
+		} else {
+			log.Printf("app error: code=%s message=%s", appErr.Code, appErr.Message)
+		}
 		// 处理自定义错误类型（保持你原来的逻辑）
 		switch appErr.Code {
 		case utils.CodeUserNotFound:
@@ -121,13 +128,10 @@ func HandleError(c *gin.Context, err error) {
 		return
 	}
 
-	// 非自定义错误，尝试判断一些已知错误
-	if errors.Is(err, sql.ErrNoRows) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"error":   "记录不存在",
-		})
-		return
-	}
-
+	// 其他未知错误，记录日志并返回通用错误信息
+	log.Printf("internal error: %v", err)
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"success": false,
+		"error":   "系统错误",
+	})
 }
