@@ -2,8 +2,8 @@ package services
 
 import (
 	"AccountingAssistant/database"
+	"AccountingAssistant/utils"
 	"database/sql"
-	"fmt"
 )
 
 type UserService struct {
@@ -16,7 +16,7 @@ func NewUserService(masterDB *sql.DB) *UserService {
 func (s *UserService) Register(username, password string) (int64, error) {
 	userId, err := database.RegisterUser(s.masterDB, username, password)
 	if err != nil {
-		return 0, fmt.Errorf("注册失败: %v", err)
+		return 0, utils.WrapError(utils.ErrRegisterFailed, err)
 	}
 	return userId, nil
 }
@@ -24,7 +24,7 @@ func (s *UserService) Register(username, password string) (int64, error) {
 func (s *UserService) Login(username, password string) (int64, error) {
 	id, err := database.LoginUser(s.masterDB, username, password)
 	if err != nil {
-		return 0, fmt.Errorf("登录失败: %v", err)
+		return 0, utils.WrapError(utils.ErrLoginFailed, err)
 	}
 	return id, nil
 }

@@ -3,8 +3,8 @@ package services
 import (
 	"AccountingAssistant/database"
 	"AccountingAssistant/models"
+	"AccountingAssistant/utils"
 	"database/sql"
-	"fmt"
 )
 
 type TransactionService struct {
@@ -18,13 +18,13 @@ func NewTransactionService(masterDB *sql.DB) *TransactionService {
 func (s *TransactionService) RecordTransaction(userID int64, transactionType string, amount float64, category string, note string) (int64, error) {
 	userDB, err := database.GetUserDB(userID)
 	if err != nil {
-		return 0, fmt.Errorf("连接用户数据库失败")
+		return 0, utils.WrapError(utils.ErrDBConnFailed, err)
 	}
 	defer userDB.Close()
 
 	transactionID, err := database.RecordTransaction(userDB, transactionType, amount, category, note)
 	if err != nil {
-		return 0, fmt.Errorf("记录交易失败: %v", err)
+		return 0, utils.WrapError(utils.ErrRecordBillFailed, err)
 	}
 	return transactionID, nil
 }
@@ -33,13 +33,13 @@ func (s *TransactionService) GetTransactions(userID int64) ([]models.Transaction
 
 	userDB, err := database.GetUserDB(userID)
 	if err != nil {
-		return nil, fmt.Errorf("连接用户数据库失败")
+		return nil, utils.WrapError(utils.ErrDBConnFailed, err)
 	}
 	defer userDB.Close()
 
 	transactions, err := database.GetTransaction(userDB)
 	if err != nil {
-		return nil, err
+		return nil, utils.WrapError(utils.ErrQueryFailed, err)
 	}
 	return transactions, nil
 }

@@ -2,49 +2,51 @@ package middleware
 
 import (
 	"AccountingAssistant/services"
+	"AccountingAssistant/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-// 完全不会，由deepseek提供
+// SessionMiddleware 从 Cookie 中检索 session_id 并验证，会将用户信息写入上下文。
+// 在无法获取或验证会话时，使用统一的错误处理器返回错误信息。
 func SessionMiddleware(sessionManager *services.DBSessionManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 从Cookie获取sessionID
+		// 从Cookie获取sessionID（或Header）
 		sessionID, err := c.Cookie("session_id")
-		if err == nil {
-			// 如果有sessionID，就验证它
-			userID, username, valid := sessionManager.ValidateSession(sessionID)
-			if valid {
-				// 会话有效，保存用户信息
-				c.Set("userID", userID)
-				c.Set("username", username)
-			}
+		if err != nil {
+			utils.HandleError(c, utils.ErrNotLoggedIn)
+			c.Abort()
+			return
 		}
-		// 不管有没有session，都继续处理（让AuthRequired决定是否需要登录）
+
+		userID, username, valid := sessionManager.ValidateSession(sessionID)
+		if !valid {
+			utils.HandleError(c, utils.ErrInvalidSession)
+			c.Abort()
+			return
+		}
+		// 将会话信息存入上下文
+		c.Set("userID", userID)
+		c.Set("username", username)
 		c.Next()
 	}
 }
+
 func AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("userID")
 		if !exists {
-			c.JSON(401, gin.H{
-				"success": false,
-				"error":   "请先登录",
-			})
-			c.Abort() // 停止后继续处理
+			utils.HandleError(c, utils.ErrNotLoggedIn)
+			c.Abort()
 			return
 		}
 
 		// 确保userID是int64类型
 		if _, ok := userID.(int64); !ok {
-			c.JSON(401, gin.H{
-				"success": false,
-				"error":   "无效的用户会话",
-			})
+			utils.HandleError(c, utils.ErrInvalidSession)
 			c.Abort()
 			return
 		}
-		c.Next() // 验证通过，继续处理
+		c.Next()
 	}
 }

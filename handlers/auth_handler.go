@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"AccountingAssistant/services"
+	"AccountingAssistant/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -35,18 +36,12 @@ func NewAuthHandler(userService *services.UserService, sessionManager *services.
 func (h *AuthHandler) RegisterUser(c *gin.Context) {
 	var req RegisterUserRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "用户名、密码不能为空",
-		})
+		utils.HandleError(c, utils.ErrEmptyCredential)
 		return
 	}
 	userId, err := h.userService.Register(req.UserName, req.Password)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+		utils.HandleError(c, err) // 使用统一的错误处理
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -59,24 +54,20 @@ func (h *AuthHandler) RegisterUser(c *gin.Context) {
 func (h *AuthHandler) LoginUser(c *gin.Context) {
 	var req LoginUserRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
-
+		utils.HandleError(c, utils.ErrEmptyCredential)
 		return
 	}
 	userID, err := h.userService.Login(req.UserName, req.Password)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+		utils.HandleError(c, err) // 使用统一的错误处理
 		return
 	}
 	// 创建会话
-	sessionID := h.sessionManager.CreateSession(userID, req.UserName)
-
+	sessionID, err := h.sessionManager.CreateSession(userID, req.UserName)
+	if err != nil {
+		utils.HandleError(c, err) // 修改: 直接返回ErrCreateSessionFailed会丢失错误信息
+		return
+	}
 	// 设置Cookie（浏览器自动保存）
 	c.SetCookie("session_id", sessionID, 24*3600, "/", "", false, true) // 24小时过期
 

@@ -2,8 +2,8 @@ package database
 
 import (
 	"AccountingAssistant/models"
+	"AccountingAssistant/utils"
 	"database/sql"
-	"fmt"
 )
 
 func RecordTransaction(userDB *sql.DB, Type string, Amount float64, Category string, Note string) (int64, error) {
@@ -11,11 +11,11 @@ func RecordTransaction(userDB *sql.DB, Type string, Amount float64, Category str
 	insertSQL := "INSERT INTO transactions (type, amount, category, note) VALUES (?, ?, ?, ?)"
 	result, err := userDB.Exec(insertSQL, Type, Amount, Category, Note)
 	if err != nil {
-		return 0, fmt.Errorf("插入交易失败: %v", err)
+		return 0, utils.WrapError(utils.ErrInsertFailed, err)
 	}
 	transactionId, err := result.LastInsertId()
 	if err != nil {
-		return 0, err
+		return 0, utils.WrapError(utils.ErrQueryFailed, err)
 	}
 	return transactionId, nil
 }
@@ -23,7 +23,7 @@ func RecordTransaction(userDB *sql.DB, Type string, Amount float64, Category str
 func GetTransaction(userDB *sql.DB) ([]models.Transaction, error) {
 	rows, err := userDB.Query("SELECT id, type, amount, category, note, created_at FROM transactions ORDER BY created_at DESC")
 	if err != nil {
-		return nil, fmt.Errorf("查询交易失败: %v", err)
+		return nil, utils.WrapError(utils.ErrQueryFailed, err)
 	}
 	defer rows.Close()
 
@@ -31,7 +31,7 @@ func GetTransaction(userDB *sql.DB) ([]models.Transaction, error) {
 	for rows.Next() {
 		var t models.Transaction
 		if err := rows.Scan(&t.ID, &t.Type, &t.Amount, &t.Category, &t.Note, &t.CreatedAt); err != nil {
-			return nil, fmt.Errorf("读取行失败: %v", err)
+			return nil, utils.WrapError(utils.ErrReadFailed, err)
 		}
 		Transaction = append(Transaction, t)
 	}

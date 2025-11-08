@@ -1,16 +1,15 @@
 package services
 
 import (
+	"AccountingAssistant/utils"
 	"database/sql"
 	"fmt"
 	"time"
 )
 
-type Session struct { // 这是一个会话
-	UserID   int64
-	Username string
-	Expires  time.Time // 这是过期时间
-}
+const (
+	SessionTimeout = 24 * time.Hour
+)
 
 // 使用数据库存储会话
 type DBSessionManager struct {
@@ -22,16 +21,16 @@ func NewDBSessionManager(masterDB *sql.DB) *DBSessionManager {
 }
 
 // 创建会话
-func (sm *DBSessionManager) CreateSession(userID int64, username string) string {
+func (sm *DBSessionManager) CreateSession(userID int64, username string) (string, error) {
 	sessionID := generateSessionID()
-	expires := time.Now().Add(24 * time.Hour)
+	expires := time.Now().Add(SessionTimeout)
 
 	insertSQL := "INSERT INTO sessions (session_id, user_id, username, expires) VALUES(?, ?, ?, ?)"
 	_, err := sm.masterDB.Exec(insertSQL, sessionID, userID, username, expires)
 	if err != nil {
-		return ""
+		return "", utils.WrapError(utils.ErrCreateSessionFailed, err)
 	}
-	return sessionID
+	return sessionID, nil
 }
 
 // 验证会话
@@ -52,12 +51,19 @@ func (sm *DBSessionManager) ValidateSession(sessionID string) (int64, string, bo
 
 // 删除会话
 func (sm *DBSessionManager) DeleteSession(sessionID string) {
-	sm.masterDB.Exec("DELETE FROM sessions WHERE session_id = ?", sessionID)
+	_, err := sm.masterDB.Exec("DELETE FROM sessions WHERE session_id = ?", sessionID)
+	if err != nil {
+		// 可以记录日志，但不需要返回错误
+		fmt.Printf("删除会话失败: %v\n", err)
+	}
 }
 
 // 清理过期会话（deepseek建议）
 func (sm *DBSessionManager) CleanupExpiredSessions() {
-	sm.masterDB.Exec("DELETE FROM sessions WHERE expires < ?", time.Now())
+	_, err := sm.masterDB.Exec("DELETE FROM sessions WHERE expires < ?", time.Now())
+	if err != nil {
+		fmt.Printf("清理过期会话失败: %v\n", err)
+	}
 }
 
 // 简单的sessionID生成
