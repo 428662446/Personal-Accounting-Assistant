@@ -66,10 +66,16 @@ func CleanAmountString(input string) string {
 	cleaned = strings.ReplaceAll(cleaned, "-", "")
 	cleaned = strings.ReplaceAll(cleaned, "+", "")
 
-	// 处理多个小数点
-	if strings.Count(cleaned, ".") > 1 {
-		parts := strings.SplitN(cleaned, ".", 2) // The count determines the number of substrings to return
-		cleaned = parts[0] + strings.ReplaceAll(parts[1], ".", "")
+	/*
+		原方案问题: 按第一个点拆分，将第二部分点全部去除；可能会与用户意图相违背，多个不连续小数点时直接返回错误会更好
+				if strings.Count(cleaned, ".") > 1 {
+			    parts := strings.SplitN(cleaned, ".", 2) // 按第一个点分割
+			    cleaned = parts[0] + "." + strings.ReplaceAll(parts[1], ".", "")
+			}
+	*/
+	// 如果存在连续的多个小数点，将连续的点合并为一个（例如 👀 -> 👁）
+	for strings.Contains(cleaned, "..") {
+		cleaned = strings.ReplaceAll(cleaned, "..", ".")
 	}
 	return cleaned
 }
@@ -127,7 +133,7 @@ func ParseToCents(str string) (int64, error) {
 		decimalPart = parts[1]
 	}
 
-	// 处理类似 ".5" 的情况
+	// 补充: 处理类似 ".5" 的情况
 	if integerPart == "" {
 		integerPart = "0"
 	}
@@ -165,10 +171,13 @@ func ParseToCents(str string) (int64, error) {
 
 // 2. 分转字符串
 func CentsToYuanString(cents int64) string {
-	yuan := cents / 100
-	centPart := cents % 100
-	if centPart < 0 {
-		centPart = -centPart
+	sign := ""
+	absCents := cents
+	if cents < 0 {
+		sign = "-"
+		absCents = -cents
 	}
-	return fmt.Sprintf("%d.%02d", yuan, centPart) // 不用再合并字符串再返回了
+	yuan := absCents / 100
+	centPart := absCents % 100
+	return sign + fmt.Sprintf("%d.%02d", yuan, centPart)
 }

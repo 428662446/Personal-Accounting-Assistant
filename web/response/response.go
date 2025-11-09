@@ -137,6 +137,13 @@ func HandleError(c *gin.Context, err error) {
 				"error":   "删除账单失败",
 			})
 
+		// 账单相关 16xx
+		case utils.CodeTransactionNotFound:
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error":   "账单不存在",
+			})
+
 		// 参数处理相关 15xx
 		case utils.CodeInvalidParameter:
 			c.JSON(http.StatusBadRequest, gin.H{

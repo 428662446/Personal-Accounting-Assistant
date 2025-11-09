@@ -12,7 +12,7 @@ import (
 //   - masterDB 保存主数据库的连接（用于用户表、会话或全局元数据）。
 //   - 每个用户的数据保存在独立的 per-user sqlite 文件中（通过 database.GetUserDB 按需打开），
 //     因此服务不在字段中持有某个用户的 DB 连接，避免长期占用资源。
-//   - masterDB 字段保留以便在需要时访问主库（例如做用户存在性检查、跨用户聚合或事务协调）。
+//   - masterDB 字段保留以便在需要时访问主库（也就是现在没用但是删着麻烦）。
 type TransactionService struct {
 	masterDB *sql.DB
 }
@@ -75,7 +75,7 @@ func (s *TransactionService) UpdateTransaction(userID int64, transactionID int64
 	}
 	defer userDB.Close()
 
-	// 获取原交易信息
+	// 获取原交易信息(如果没有更新Type，就会获取原来的)
 	existingTransaction, err := database.GetTransactionByID(userDB, transactionID)
 	if err != nil {
 		return err
@@ -85,6 +85,7 @@ func (s *TransactionService) UpdateTransaction(userID int64, transactionID int64
 	var finalType *string
 
 	// 确定最终的类型
+	// (其实就一个if update type 则 字符串转分 时根据updateType;else 根据 原type;但是这样AI说这样写更清晰)
 	finalTransactionType := existingTransaction.Type
 	if updateType != nil {
 		finalTransactionType = *updateType

@@ -133,14 +133,6 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 		return
 	}
 
-	// 如果提供了金额，必须同时提供 type，以便解析正负和规则
-	if req.Amount != nil {
-		if req.Type == nil {
-			response.HandleError(c, utils.ErrInvalidParameter)
-			return
-		}
-	}
-
 	err = h.transactionService.UpdateTransaction(
 		userID.(int64),
 		int64(transactionID),
