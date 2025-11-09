@@ -123,6 +123,10 @@ func GetUserDB(userId int64) (*sql.DB, error) {
 	}
 	return db, nil
 }
+
+// GetUserDB 说明：每个用户拥有独立的 sqlite 数据库文件（路径遵循 database_files/usersdata/user_<id>.db）。
+// 为了避免长期占用连接，调用方应负责在使用完毕后调用 Close()。
+// 业务层（services）应按需打开该连接，而不要把某个用户的 DB 长期保存在 service 的字段中。
 func GetUserIDByUsername(masterDB *sql.DB, username string) (int64, error) {
 	var userID int64
 	err := masterDB.QueryRow("SELECT id FROM users WHERE username = ?", username).Scan(&userID)

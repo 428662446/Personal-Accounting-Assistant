@@ -104,7 +104,15 @@ func ValidateAmountString(str string) error {
 // 1. 字符串转分
 // ParseToCents 将用户输入的金额字符串解析为非负的分（int64）。
 // 该函数不处理业务符号（正负由上层决定）。
-// 策略：清理 -> 验证 -> 补齐/四舍五入到两位小数（当存在第三位小数时按四舍五入）。
+//
+// 四舍五入策略说明：
+// - 清理输入（去除千位分隔符、空格、正负号等），验证只包含数字和最多一个小数点。
+// - 如果小数位少于两位，右侧补 0；如果小数位 >= 3，则依据第三位决定是否对两位小数进行四舍五入。
+// - 例如："1.234" -> 1.23（第三位为 '4'，不进位）；"1.235" -> 1.24（第三位为 '5'，进位）。
+//
+// 设计理由：后端以字符串接收金额以避免浮点精度问题，utils 负责把字符串转换为
+// 一个明确的整数分值（单位：分），而业务层（service/handler）负责将该绝对值与
+// 交易类型（income/expense）结合以决定符号并执行业务校验。
 func ParseToCents(str string) (int64, error) {
 	cleanedStr := CleanAmountString(str)
 	if err := ValidateAmountString(cleanedStr); err != nil {

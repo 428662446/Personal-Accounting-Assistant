@@ -10,26 +10,36 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// "记录账单"要求结构体
 type RecordRequest struct {
 	Type     string `form:"type" binding:"required"`
 	Amount   string `form:"amount" binding:"required"`
 	Category string `form:"category" binding:"required"`
 	Note     string `form:"note" binding:"required"`
 }
+
+// "更新账单"要求结构体
 type UpdateTransactionRequest struct {
 	Type     *string `form:"type"`     // 使用指针，nil表示不更新
 	Amount   *string `form:"amount"`   // 使用指针，nil表示不更新
 	Category *string `form:"category"` // 使用指针，nil表示不更新
 	Note     *string `form:"note"`     // 使用指针，nil表示不更新
 }
+
+// 处理账单服务的对象
 type TransactionHandler struct {
 	transactionService *services.TransactionService
 }
 
+// TransactionHandler 负责将 HTTP 请求映射到 transactionService 的业务操作。
+// 设计约定：handler 只做输入绑定与最小校验；关于金额的解析/四舍五入/符号应用（income/expense）由 service 层统一处理，handler 将金额字符串原样传递给 service。
+
+// 创建"处理账单服务的对象"的方法
 func NewTransactionHandler(transactionService *services.TransactionService) *TransactionHandler {
 	return &TransactionHandler{transactionService: transactionService} // 修复：明确指定字段名
 }
 
+// "记录账单"HTTP响应
 func (h *TransactionHandler) RecordTransaction(c *gin.Context) {
 	var req RecordRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -56,6 +66,8 @@ func (h *TransactionHandler) RecordTransaction(c *gin.Context) {
 		"transaction_id": transactionId,
 	})
 }
+
+// "获取账单"HTTP响应
 func (h *TransactionHandler) GetTransactions(c *gin.Context) {
 	// 从会话或JWT令牌中获取用户ID，而不是从URL参数
 	userID, exists := c.Get("userID")
@@ -75,6 +87,7 @@ func (h *TransactionHandler) GetTransactions(c *gin.Context) {
 	})
 }
 
+// "删除账单"HTTP响应
 func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -99,6 +112,7 @@ func (h *TransactionHandler) DeleteTransaction(c *gin.Context) {
 	})
 }
 
+// "更新账单"HTTP响应
 func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {

@@ -21,7 +21,8 @@ func main() {
 		return
 	}
 	defer db.Close()
-	// 创建服务实例
+	// 创建服务实例并注入主数据库连接。注意：transactionService 会按需打开每个用户的 per-user DB，
+	// master DB 在 service 中仅用于访问用户表/会话等全局元数据，不用于持久化某个用户的事务数据。
 	userService := services.NewUserService(db)
 	transactionService := services.NewTransactionService(db)
 	// 添加: 基于数据库的会话管理器
