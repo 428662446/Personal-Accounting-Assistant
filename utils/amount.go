@@ -34,10 +34,11 @@ func NewAmountFromCents(cents int64) Amount {
 }
 
 // 2. 字符串转金额
-func NewAmountFromString(str string, transactionType string) (Amount, error) {
-	cents, err := ParseToCents(str, transactionType)
+// NewAmountFromString 从金额字符串创建 Amount（返回非负的分值，符号由业务层决定）
+func NewAmountFromString(str string) (Amount, error) {
+	cents, err := ParseToCents(str)
 	if err != nil {
-		return Amount{}, err // ❌!!!!暂时未完善错误处理
+		return Amount{}, err
 	}
 	return Amount{
 		storedValue: cents,
@@ -101,46 +102,56 @@ func ValidateAmountString(str string) error {
 
 // 字符串转分工具
 // 1. 字符串转分
-func ParseToCents(str string, transactionType string) (int64, error) {
+// ParseToCents 将用户输入的金额字符串解析为非负的分（int64）。
+// 该函数不处理业务符号（正负由上层决定）。
+// 策略：清理 -> 验证 -> 补齐/四舍五入到两位小数（当存在第三位小数时按四舍五入）。
+func ParseToCents(str string) (int64, error) {
 	cleanedStr := CleanAmountString(str)
-	err := ValidateAmountString(cleanedStr)
-	if err != nil {
-		return 0, err // 在ValidateAmountString已经处理
+	if err := ValidateAmountString(cleanedStr); err != nil {
+		return 0, err
 	}
-	// 区分正负数
-	var isNegative bool
-	switch transactionType {
-	case "income":
-		isNegative = false // 收入强制为正
-	case "expense":
-		isNegative = true // 支出强制为负
-	}
+
 	// 切分整数和小数
 	parts := strings.SplitN(cleanedStr, ".", 2)
 	integerPart := parts[0]
 	decimalPart := ""
-	if len(parts) > 1 { // 如果有小数
+	if len(parts) > 1 {
 		decimalPart = parts[1]
 	}
+
 	// 处理类似 ".5" 的情况
 	if integerPart == "" {
 		integerPart = "0"
 	}
+
 	// 补全两位小数
 	if len(decimalPart) < 2 {
-		decimalPart += strings.Repeat("0", 2-len(decimalPart)) // Repeat returns a new string consisting of count copies of the string s
-	} else if len(decimalPart) > 2 {
-		decimalPart = decimalPart[:2] // 直接截断
+		decimalPart += strings.Repeat("0", 2-len(decimalPart))
 	}
+
+	// 如果存在第三位小数并且 >= '5'，则对两位小数进行四舍五入
+	roundUp := false
+	if len(decimalPart) >= 3 {
+		if decimalPart[2] >= '5' {
+			roundUp = true
+		}
+		decimalPart = decimalPart[:2]
+	}
+
 	resultStr := integerPart + decimalPart
-	result, err := strconv.ParseInt(resultStr, 10, 64) // ParseInt解释给定基数（0,2到36）和位大小（0到64）的字符串s，并返回相应的值
+	result, err := strconv.ParseInt(resultStr, 10, 64)
 	if err != nil {
 		return 0, ErrInvalidParameter
 	}
-	if isNegative {
-		result = -result
+
+	if roundUp {
+		result += 1
 	}
 
+	// 返回非负分值，符号由业务层决定
+	if result < 0 {
+		result = -result
+	}
 	return result, nil
 }
 

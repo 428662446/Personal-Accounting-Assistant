@@ -36,12 +36,7 @@ func (h *TransactionHandler) RecordTransaction(c *gin.Context) {
 		response.HandleError(c, utils.ErrEmptyContent)
 		return
 	}
-	// 使用新的金额处理
-	cents, err := utils.ParseToCents(req.Amount, req.Type)
-	if err != nil {
-		response.HandleError(c, err)
-		return
-	}
+	// 把原始金额字符串交给 service 处理（包括解析、符号、校验）
 
 	// 从会话中获取用户ID，而不是从请求参数
 	userID, exists := c.Get("userID")
@@ -50,7 +45,7 @@ func (h *TransactionHandler) RecordTransaction(c *gin.Context) {
 		return
 	}
 
-	transactionId, err := h.transactionService.RecordTransaction(userID.(int64), req.Type, cents, req.Category, req.Note)
+	transactionId, err := h.transactionService.RecordTransaction(userID.(int64), req.Type, req.Amount, req.Category, req.Note)
 	if err != nil {
 		response.HandleError(c, err) // 使用统一的错误处理
 		return
@@ -125,25 +120,18 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 	}
 
 	// 如果提供了金额，必须同时提供 type，以便解析正负和规则
-	var amountPtr *int64
 	if req.Amount != nil {
 		if req.Type == nil {
 			response.HandleError(c, utils.ErrInvalidParameter)
 			return
 		}
-		cents, err := utils.ParseToCents(*req.Amount, *req.Type)
-		if err != nil {
-			response.HandleError(c, err)
-			return
-		}
-		amountPtr = &cents
 	}
 
 	err = h.transactionService.UpdateTransaction(
 		userID.(int64),
 		int64(transactionID),
 		req.Type,     // 可能是nil
-		amountPtr,    // 可能是nil
+		req.Amount,   // 可能是nil
 		req.Category, // 可能是nil
 		req.Note,     // 可能是nil
 	)
