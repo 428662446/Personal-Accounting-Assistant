@@ -7,7 +7,9 @@ import (
 	"strings"
 )
 
-func RecordTransaction(userDB *sql.DB, Type string, Amount float64, Category string, Note string) (int64, error) {
+// 业务相关数据库操作
+// 1. 记录账单
+func RecordTransaction(userDB *sql.DB, Type string, Amount int64, Category string, Note string) (int64, error) {
 
 	insertSQL := "INSERT INTO transactions (type, amount, category, note) VALUES (?, ?, ?, ?)"
 	result, err := userDB.Exec(insertSQL, Type, Amount, Category, Note)
@@ -21,25 +23,29 @@ func RecordTransaction(userDB *sql.DB, Type string, Amount float64, Category str
 	return transactionId, nil
 }
 
-func GetTransaction(userDB *sql.DB) ([]models.Transaction, error) {
+// 2. 获取账单
+func GetTransaction(userDB *sql.DB) ([]models.DisplayTransaction, error) {
 	rows, err := userDB.Query("SELECT id, type, amount, category, note, created_at FROM transactions ORDER BY created_at DESC")
 	if err != nil {
 		return nil, utils.WrapError(utils.ErrQueryFailed, err)
 	}
 	defer rows.Close()
 
-	var Transaction []models.Transaction
+	var Transactions []models.DisplayTransaction
+	var cents int64
 	for rows.Next() {
-		var t models.Transaction
-		if err := rows.Scan(&t.ID, &t.Type, &t.Amount, &t.Category, &t.Note, &t.CreatedAt); err != nil {
+		var t models.DisplayTransaction
+		if err := rows.Scan(&t.ID, &t.Type, &cents, &t.Category, &t.Note, &t.CreatedAt); err != nil {
 			return nil, utils.WrapError(utils.ErrReadFailed, err)
 		}
-		Transaction = append(Transaction, t)
+		t.Amount = utils.CentsToYuanString(cents)
+		Transactions = append(Transactions, t)
 	}
 
-	return Transaction, nil
+	return Transactions, nil
 }
 
+// 3. 删除账单
 func DeleteTransaction(userDB *sql.DB, transactionID int64) error {
 	deleteSQL := "DELETE FROM transactions WHERE id = ?"
 	_, err := userDB.Exec(deleteSQL, transactionID)
@@ -49,10 +55,12 @@ func DeleteTransaction(userDB *sql.DB, transactionID int64) error {
 	return nil
 }
 
-func UpdateTransaction(userDB *sql.DB, transactionID int64, updateType *string, updateAmount *float64, updateCategory *string, updateNote *string) error {
+// 4.更新账单
+func UpdateTransaction(userDB *sql.DB, transactionID int64, updateType *string, updateAmount *int64, updateCategory *string, updateNote *string) error {
+
 	// 构建动态SQL
 	var queryParts []string
-	var args []interface{}
+	var args []interface{} // 可以放入不同类型
 
 	if updateType != nil {
 		queryParts = append(queryParts, "type = ?")
@@ -73,14 +81,14 @@ func UpdateTransaction(userDB *sql.DB, transactionID int64, updateType *string, 
 
 	// 如果没有要更新的字段
 	if len(queryParts) == 0 {
-		return nil // 或者返回一个错误，表示没有字段需要更新
+		return nil // 或者返回一个错误，表示没有字段需要更新，但是我懒
 	}
 
 	// 添加WHERE条件
 	queryParts = append(queryParts, "id = ?")
 	args = append(args, transactionID)
 
-	// 构建完整SQL
+	// 构建完整SQL ∑( 口 ||
 	query := "UPDATE transactions SET " + strings.Join(queryParts[:len(queryParts)-1], ", ") + " WHERE " + queryParts[len(queryParts)-1]
 
 	_, err := userDB.Exec(query, args...)

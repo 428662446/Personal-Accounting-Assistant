@@ -11,16 +11,16 @@ import (
 )
 
 type RecordRequest struct {
-	Type     string  `form:"type" binding:"required"`
-	Amount   float64 `form:"amount" binding:"required"`
-	Category string  `form:"category" binding:"required"`
-	Note     string  `form:"note" binding:"required"`
+	Type     string `form:"type" binding:"required"`
+	Amount   string `form:"amount" binding:"required"`
+	Category string `form:"category" binding:"required"`
+	Note     string `form:"note" binding:"required"`
 }
 type UpdateTransactionRequest struct {
-	Type     *string  `form:"type"`     // 使用指针，nil表示不更新
-	Amount   *float64 `form:"amount"`   // 使用指针，nil表示不更新
-	Category *string  `form:"category"` // 使用指针，nil表示不更新
-	Note     *string  `form:"note"`     // 使用指针，nil表示不更新
+	Type     *string `form:"type"`     // 使用指针，nil表示不更新
+	Amount   *string `form:"amount"`   // 使用指针，nil表示不更新
+	Category *string `form:"category"` // 使用指针，nil表示不更新
+	Note     *string `form:"note"`     // 使用指针，nil表示不更新
 }
 type TransactionHandler struct {
 	transactionService *services.TransactionService
@@ -29,10 +29,17 @@ type TransactionHandler struct {
 func NewTransactionHandler(transactionService *services.TransactionService) *TransactionHandler {
 	return &TransactionHandler{transactionService: transactionService} // 修复：明确指定字段名
 }
+
 func (h *TransactionHandler) RecordTransaction(c *gin.Context) {
 	var req RecordRequest
 	if err := c.ShouldBind(&req); err != nil {
 		response.HandleError(c, utils.ErrEmptyContent)
+		return
+	}
+	// 使用新的金额处理
+	cents, err := utils.ParseToCents(req.Amount, req.Type)
+	if err != nil {
+		response.HandleError(c, err)
 		return
 	}
 
@@ -43,7 +50,7 @@ func (h *TransactionHandler) RecordTransaction(c *gin.Context) {
 		return
 	}
 
-	transactionId, err := h.transactionService.RecordTransaction(userID.(int64), req.Type, req.Amount, req.Category, req.Note)
+	transactionId, err := h.transactionService.RecordTransaction(userID.(int64), req.Type, cents, req.Category, req.Note)
 	if err != nil {
 		response.HandleError(c, err) // 使用统一的错误处理
 		return
@@ -117,11 +124,26 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 		return
 	}
 
+	// 如果提供了金额，必须同时提供 type，以便解析正负和规则
+	var amountPtr *int64
+	if req.Amount != nil {
+		if req.Type == nil {
+			response.HandleError(c, utils.ErrInvalidParameter)
+			return
+		}
+		cents, err := utils.ParseToCents(*req.Amount, *req.Type)
+		if err != nil {
+			response.HandleError(c, err)
+			return
+		}
+		amountPtr = &cents
+	}
+
 	err = h.transactionService.UpdateTransaction(
 		userID.(int64),
 		int64(transactionID),
 		req.Type,     // 可能是nil
-		req.Amount,   // 可能是nil
+		amountPtr,    // 可能是nil
 		req.Category, // 可能是nil
 		req.Note,     // 可能是nil
 	)

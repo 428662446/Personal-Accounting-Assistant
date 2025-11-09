@@ -102,11 +102,11 @@ func createUserDatabase(userID int64) error {
 CREATE TABLE IF NOT EXISTS transactions (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	type TEXT NOT NULL,
-	amount REAL NOT NULL,
+	amount INTEGER NOT NULL,
 	category TEXT NOT NULL,
 	note TEXT,
 	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);`
+);` // 已修改表单金额类型
 
 	_, err = db.Exec(createTableSQL)
 	if err != nil {

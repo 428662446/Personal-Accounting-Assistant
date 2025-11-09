@@ -14,7 +14,7 @@ func NewTransactionService(masterDB *sql.DB) *TransactionService {
 	return &TransactionService{masterDB: masterDB}
 }
 
-func (s *TransactionService) RecordTransaction(userID int64, transactionType string, amount float64, category string, note string) (int64, error) {
+func (s *TransactionService) RecordTransaction(userID int64, transactionType string, amount int64, category string, note string) (int64, error) {
 	userDB, err := database.GetUserDB(userID)
 	if err != nil {
 		return 0, err
@@ -24,7 +24,7 @@ func (s *TransactionService) RecordTransaction(userID int64, transactionType str
 	return database.RecordTransaction(userDB, transactionType, amount, category, note)
 }
 
-func (s *TransactionService) GetTransactions(userID int64) ([]models.Transaction, error) {
+func (s *TransactionService) GetTransactions(userID int64) ([]models.DisplayTransaction, error) {
 
 	userDB, err := database.GetUserDB(userID)
 	if err != nil {
@@ -45,7 +45,7 @@ func (s *TransactionService) DeleteTransaction(userID int64, transactionID int64
 	return database.DeleteTransaction(userDB, transactionID)
 }
 
-func (s *TransactionService) UpdateTransaction(userID int64, transactionID int64, updateType *string, updateAmount *float64, updateCategory *string, updateNote *string) error {
+func (s *TransactionService) UpdateTransaction(userID int64, transactionID int64, updateType *string, updateAmount *int64, updateCategory *string, updateNote *string) error {
 	userDB, err := database.GetUserDB(userID)
 	if err != nil {
 		return err
