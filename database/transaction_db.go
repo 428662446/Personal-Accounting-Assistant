@@ -97,3 +97,20 @@ func UpdateTransaction(userDB *sql.DB, transactionID int64, updateType *string, 
 	}
 	return nil
 }
+
+// 添加: 获取单个交易的函数
+func GetTransactionByID(userDB *sql.DB, transactionID int64) (*models.Transaction, error) {
+	var transaction models.Transaction
+	err := userDB.QueryRow(
+		"SELECT id, type, amount, category, note, created_at FROM transactions WHERE id = ?",
+		transactionID,
+	).Scan(&transaction.ID, &transaction.Type, &transaction.Amount, &transaction.Category, &transaction.Note, &transaction.CreatedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, utils.ErrTransactionNotFound
+		}
+		return nil, utils.WrapError(utils.ErrQueryFailed, err)
+	}
+	return &transaction, nil
+}

@@ -69,29 +69,76 @@ func (s *TransactionService) DeleteTransaction(userID int64, transactionID int64
 
 // "更新账单"服务
 func (s *TransactionService) UpdateTransaction(userID int64, transactionID int64, updateType *string, updateAmount *string, updateCategory *string, updateNote *string) error {
-
-	var centsPtr *int64
-	if updateAmount != nil {
-		// 解析字符串
-		cents, err := utils.ParseToCents(*updateAmount)
-		if err != nil {
-			return err
-		}
-		if updateType == nil {
-			// 业务要求：当更新金额时必须提供 type，以便决定符号
-			return utils.ErrInvalidParameter
-		}
-		if *updateType == "expense" {
-			cents = -cents
-		}
-		centsPtr = &cents
-	}
-
 	userDB, err := database.GetUserDB(userID)
 	if err != nil {
 		return err
 	}
 	defer userDB.Close()
 
-	return database.UpdateTransaction(userDB, transactionID, updateType, centsPtr, updateCategory, updateNote)
+	// 获取原交易信息
+	existingTransaction, err := database.GetTransactionByID(userDB, transactionID)
+	if err != nil {
+		return err
+	}
+
+	var centsPtr *int64
+	var finalType *string
+
+	// 确定最终的类型
+	finalTransactionType := existingTransaction.Type
+	if updateType != nil {
+		finalTransactionType = *updateType
+		finalType = updateType
+	}
+
+	// 验证类型有效性
+	if finalTransactionType != "income" && finalTransactionType != "expense" {
+		return utils.ErrInvalidTransactionType
+	}
+
+	// 处理金额更新
+	if updateAmount != nil {
+		// 解析新金额
+		cents, err := utils.ParseToCents(*updateAmount)
+		if err != nil {
+			return err
+		}
+
+		// 根据最终类型应用符号
+		if finalTransactionType == "expense" {
+			cents = -cents
+		}
+
+		// 业务校验
+		if cents == 0 {
+			return utils.ErrInvalidTransactionType
+		}
+
+		centsPtr = &cents
+	} else if updateType != nil {
+		// 只更新类型：调整原金额的符号以匹配新类型
+		var adjustedAmount int64
+		if finalTransactionType == "income" {
+			// 确保金额为正
+			adjustedAmount = abs(existingTransaction.Amount)
+		} else {
+			// 确保金额为负
+			adjustedAmount = -abs(existingTransaction.Amount)
+		}
+
+		// 如果符号确实改变了，才更新金额
+		if adjustedAmount != existingTransaction.Amount {
+			centsPtr = &adjustedAmount
+		}
+	}
+
+	return database.UpdateTransaction(userDB, transactionID, finalType, centsPtr, updateCategory, updateNote)
+}
+
+// 辅助函数：获取绝对值
+func abs(n int64) int64 {
+	if n < 0 {
+		return -n
+	}
+	return n
 }

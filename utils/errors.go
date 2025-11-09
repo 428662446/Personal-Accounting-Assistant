@@ -78,6 +78,13 @@ const (
 
 	// 增：参数处理错误 15xx
 	CodeInvalidParameter = "1501"
+
+	// 账单相关错误 16xx
+	CodeAmountInvalidFormat    = "1601"
+	CodeAmountTooLarge         = "1602"
+	CodeAmountZero             = "1603"
+	CodeInvalidTransactionType = "1604"
+	CodeTransactionNotFound    = "1605"
 )
 
 // 预定义错误(错误码 错误消息)
@@ -130,4 +137,13 @@ var (
 // 参数处理相关
 var (
 	ErrInvalidParameter = &Error{Code: CodeInvalidParameter, Message: "参数错误"}
+)
+
+// 账单相关
+var (
+	ErrAmountInvalidFormat    = &Error{Code: CodeAmountInvalidFormat, Message: "金额格式错误"}
+	ErrAmountTooLarge         = &Error{Code: CodeAmountTooLarge, Message: "金额过大"}
+	ErrAmountZero             = &Error{Code: CodeAmountZero, Message: "金额不能为零"}
+	ErrInvalidTransactionType = &Error{Code: CodeInvalidTransactionType, Message: "无效的账单类型"}
+	ErrTransactionNotFound    = &Error{Code: CodeTransactionNotFound, Message: "账单不存在"}
 )
