@@ -11,8 +11,6 @@ import (
 // 设计说明：
 //   - masterDB 保存主数据库的连接（用于用户表、会话或全局元数据）。
 //   - 每个用户的数据保存在独立的 per-user sqlite 文件中（通过 database.GetUserDB 按需打开），
-//     因此服务不在字段中持有某个用户的 DB 连接，避免长期占用资源。
-//   - masterDB 字段保留以便在需要时访问主库（也就是现在没用但是删着麻烦）。
 type TransactionService struct {
 	masterDB *sql.DB
 }

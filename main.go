@@ -25,11 +25,13 @@ func main() {
 	// master DB 在 service 中仅用于访问用户表/会话等全局元数据，不用于持久化某个用户的事务数据。
 	userService := services.NewUserService(db)
 	transactionService := services.NewTransactionService(db)
+	statService := services.NewStatService(db)
 	// 添加: 基于数据库的会话管理器
 	sessionManager := services.NewDBSessionManager(db)
 
 	authHandler := handlers.NewAuthHandler(userService, sessionManager)
 	transactionHandler := handlers.NewTransactionHandler(transactionService)
+	statHandler := handlers.NewStatHandler(statService)
 
 	r := gin.Default()
 
@@ -42,6 +44,7 @@ func main() {
 		authGroup.POST("/transaction", transactionHandler.RecordTransaction)
 		authGroup.GET("/transactions", transactionHandler.GetTransactions)
 		authGroup.POST("/logout", authHandler.LogoutUser) // 添加退出登录
+		authGroup.GET("/Summary", statHandler.GetSummary)
 	}
 	r.Run(":8080")
 }

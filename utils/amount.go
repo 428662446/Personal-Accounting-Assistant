@@ -171,13 +171,13 @@ func ParseToCents(str string) (int64, error) {
 
 // 2. 分转字符串
 func CentsToYuanString(cents int64) string {
-	sign := ""
-	absCents := cents
+	sign := "+"       // 正数加号
+	absCents := cents // 求绝对值分
 	if cents < 0 {
-		sign = "-"
+		sign = "-" // 负数的负号
 		absCents = -cents
 	}
-	yuan := absCents / 100
-	centPart := absCents % 100
+	yuan := absCents / 100     // 分转元整数部分
+	centPart := absCents % 100 // 分转元小数部分
 	return sign + fmt.Sprintf("%d.%02d", yuan, centPart)
 }
