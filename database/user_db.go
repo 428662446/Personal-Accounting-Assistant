@@ -86,10 +86,12 @@ func LoginUser(masterDB *sql.DB, username string, password string) (int64, error
 }
 func createUserDatabase(userID int64) error {
 	// 确保用户数据文件路径存在
-	path, err := EnsureUserDatabase(userID)
-	if err != nil {
+	if err := os.MkdirAll(UsersDataDir, 0755); err != nil {
 		return utils.WrapError(utils.ErrCreateDirFailed, err)
 	}
+
+	path := filepath.Join(UsersDataDir, fmt.Sprintf("user_%d.db", userID))
+
 	// 打开用户数据库
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
@@ -103,11 +105,23 @@ CREATE TABLE IF NOT EXISTS transactions (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	type TEXT NOT NULL,
 	amount INTEGER NOT NULL,
-	category TEXT NOT NULL,
+	category_id INTEGER DEFAULT 0,  -- 0表示未分类
 	note TEXT,
 	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );` // 已修改表单金额类型
 
+	_, err = db.Exec(createTableSQL)
+	if err != nil {
+		return utils.WrapError(utils.ErrCreateTableFailed, err)
+	}
+
+	// 创建类别表单
+	createTableSQL = `
+CREATE TABLE IF NOT EXISTS categories (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	name TEXT NOT NULL,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);`
 	_, err = db.Exec(createTableSQL)
 	if err != nil {
 		return utils.WrapError(utils.ErrCreateTableFailed, err)
@@ -124,9 +138,6 @@ func GetUserDB(userId int64) (*sql.DB, error) {
 	return db, nil
 }
 
-// GetUserDB 说明：每个用户拥有独立的 sqlite 数据库文件（路径遵循 database_files/usersdata/user_<id>.db）。
-// 为了避免长期占用连接，调用方应负责在使用完毕后调用 Close()。
-// 业务层（services）应按需打开该连接，而不要把某个用户的 DB 长期保存在 service 的字段中。
 func GetUserIDByUsername(masterDB *sql.DB, username string) (int64, error) {
 	var userID int64
 	err := masterDB.QueryRow("SELECT id FROM users WHERE username = ?", username).Scan(&userID)

@@ -8,11 +8,17 @@ import (
 )
 
 // CRUD数据库操作
-// 1. 记录账单
-func RecordTransaction(userDB *sql.DB, Type string, Amount int64, Category string, Note string) (int64, error) {
+// 1. 记录账单（CategoryID 可以为 nil）
+func RecordTransaction(userDB *sql.DB, Type string, Amount int64, CategoryID *int64, Note string) (int64, error) {
 
-	insertSQL := "INSERT INTO transactions (type, amount, category, note) VALUES (?, ?, ?, ?)"
-	result, err := userDB.Exec(insertSQL, Type, Amount, Category, Note)
+	insertSQL := "INSERT INTO transactions (type, amount, category_id, note) VALUES (?, ?, ?, ?)"
+	var cid interface{}
+	if CategoryID == nil {
+		cid = nil
+	} else {
+		cid = *CategoryID
+	}
+	result, err := userDB.Exec(insertSQL, Type, Amount, cid, Note)
 	if err != nil {
 		return 0, utils.WrapError(utils.ErrInsertFailed, err)
 	}
@@ -23,9 +29,18 @@ func RecordTransaction(userDB *sql.DB, Type string, Amount int64, Category strin
 	return transactionId, nil
 }
 
-// 2. 获取账单
+// 2. 获取账单（含类别名，未分类显示为 "其他"）
 func GetTransaction(userDB *sql.DB) ([]models.DisplayTransaction, error) {
-	rows, err := userDB.Query("SELECT id, type, amount, category, note, created_at FROM transactions ORDER BY created_at DESC")
+	querySQL := `
+SELECT
+	t.id, t.type, t.amount,
+	COALESCE(c.name, '其他') as category_name,
+	t.note, t.created_at
+FROM transactions t
+LEFT JOIN categories c ON t.category_id = c.id
+ORDER BY t.created_at DESC
+`
+	rows, err := userDB.Query(querySQL)
 	if err != nil {
 		return nil, utils.WrapError(utils.ErrQueryFailed, err)
 	}
@@ -35,7 +50,7 @@ func GetTransaction(userDB *sql.DB) ([]models.DisplayTransaction, error) {
 	var cents int64
 	for rows.Next() {
 		var t models.DisplayTransaction
-		if err := rows.Scan(&t.ID, &t.Type, &cents, &t.Category, &t.Note, &t.CreatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.Type, &cents, &t.CategoryName, &t.Note, &t.CreatedAt); err != nil {
 			return nil, utils.WrapError(utils.ErrReadFailed, err)
 		}
 		t.Amount = utils.CentsToYuanString(cents)
@@ -55,8 +70,8 @@ func DeleteTransaction(userDB *sql.DB, transactionID int64) error {
 	return nil
 }
 
-// 4.更新账单
-func UpdateTransaction(userDB *sql.DB, transactionID int64, updateType *string, updateAmount *int64, updateCategory *string, updateNote *string) error {
+// 4. 更新账单（支持可选字段）
+func UpdateTransaction(userDB *sql.DB, transactionID int64, updateType *string, updateAmount *int64, updateCategoryID *int64, updateNote *string) error {
 
 	// 构建动态SQL
 	var queryParts []string
@@ -70,9 +85,9 @@ func UpdateTransaction(userDB *sql.DB, transactionID int64, updateType *string, 
 		queryParts = append(queryParts, "amount = ?")
 		args = append(args, *updateAmount)
 	}
-	if updateCategory != nil {
-		queryParts = append(queryParts, "category = ?")
-		args = append(args, *updateCategory)
+	if updateCategoryID != nil {
+		queryParts = append(queryParts, "category_id = ?")
+		args = append(args, *updateCategoryID)
 	}
 	if updateNote != nil {
 		queryParts = append(queryParts, "note = ?")
@@ -138,9 +153,9 @@ func GetNetIncome(userDB *sql.DB) (int64, error) {
 func GetTransactionByID(userDB *sql.DB, transactionID int64) (*models.Transaction, error) {
 	var transaction models.Transaction
 	err := userDB.QueryRow(
-		"SELECT id, type, amount, category, note, created_at FROM transactions WHERE id = ?",
+		"SELECT id, type, amount, category_id, note, created_at FROM transactions WHERE id = ?",
 		transactionID,
-	).Scan(&transaction.ID, &transaction.Type, &transaction.Amount, &transaction.Category, &transaction.Note, &transaction.CreatedAt)
+	).Scan(&transaction.ID, &transaction.Type, &transaction.Amount, &transaction.CategoryID, &transaction.Note, &transaction.CreatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {

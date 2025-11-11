@@ -39,7 +39,26 @@ func (s *TransactionService) RecordTransaction(userID int64, transactionType str
 	}
 	defer userDB.Close()
 
-	return database.RecordTransaction(userDB, transactionType, cents, category, note)
+	// 处理类别
+	var categoryIDPtr *int64
+	// 设置类别
+	if category != "" {
+		cid, err := database.GetCategoryIdByName(userDB, category)
+		if err != nil {
+			return 0, err
+		}
+		if cid == 0 {
+			// 不存在则创建
+			newId, err := database.CreateCategory(userDB, category)
+			if err != nil {
+				return 0, err
+			}
+			cid = newId
+		}
+		categoryIDPtr = &cid
+	}
+
+	return database.RecordTransaction(userDB, transactionType, cents, categoryIDPtr, note)
 }
 
 // "获取账单"服务
@@ -66,7 +85,7 @@ func (s *TransactionService) DeleteTransaction(userID int64, transactionID int64
 }
 
 // "更新账单"服务
-func (s *TransactionService) UpdateTransaction(userID int64, transactionID int64, updateType *string, updateAmount *string, updateCategory *string, updateNote *string) error {
+func (s *TransactionService) UpdateTransaction(userID int64, transactionID int64, updateType *string, updateAmount *string, updateCategoryName *string, updateNote *string) error {
 	userDB, err := database.GetUserDB(userID)
 	if err != nil {
 		return err
@@ -130,8 +149,30 @@ func (s *TransactionService) UpdateTransaction(userID int64, transactionID int64
 			centsPtr = &adjustedAmount
 		}
 	}
+	var updateCategoryPtr *int64
+	if updateCategoryName != nil {
+		// 空字符串表示清空类别 -> 约定传入 0 表示设置为 NULL
+		if *updateCategoryName == "" {
+			zero := int64(0)
+			updateCategoryPtr = &zero
+		} else {
+			cid, err := database.GetCategoryIdByName(userDB, *updateCategoryName)
+			if err != nil {
+				return err
+			}
+			if cid == 0 {
+				// 不存在则创建
+				newId, err := database.CreateCategory(userDB, *updateCategoryName)
+				if err != nil {
+					return err
+				}
+				cid = newId
+			}
+			updateCategoryPtr = &cid
+		}
+	}
 
-	return database.UpdateTransaction(userDB, transactionID, finalType, centsPtr, updateCategory, updateNote)
+	return database.UpdateTransaction(userDB, transactionID, finalType, centsPtr, updateCategoryPtr, updateNote)
 }
 
 // 辅助函数：获取绝对值

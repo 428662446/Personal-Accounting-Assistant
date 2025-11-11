@@ -26,13 +26,14 @@ func main() {
 	userService := services.NewUserService(db)
 	transactionService := services.NewTransactionService(db)
 	statService := services.NewStatService(db)
+	categoryServic := services.NewCategoryService(db)
 	// 添加: 基于数据库的会话管理器
 	sessionManager := services.NewDBSessionManager(db)
 
 	authHandler := handlers.NewAuthHandler(userService, sessionManager)
 	transactionHandler := handlers.NewTransactionHandler(transactionService)
 	statHandler := handlers.NewStatHandler(statService)
-
+	categoryHandler := handlers.NewCategoryHandler(categoryServic)
 	r := gin.Default()
 
 	r.POST("/register", authHandler.RegisterUser)
@@ -44,7 +45,11 @@ func main() {
 		authGroup.POST("/transaction", transactionHandler.RecordTransaction)
 		authGroup.GET("/transactions", transactionHandler.GetTransactions)
 		authGroup.POST("/logout", authHandler.LogoutUser) // 添加退出登录
-		authGroup.GET("/Summary", statHandler.GetSummary)
+		authGroup.GET("/summary", statHandler.GetSummary)
+		authGroup.POST("/category", categoryHandler.CreateCategory)
+		authGroup.GET("/categories", categoryHandler.GetCategory)
+		authGroup.PUT("/category/:id", categoryHandler.UpdateCategory)    // 更新特定类别
+		authGroup.DELETE("/category/:id", categoryHandler.DeleteCategory) // 删除特定类别
 	}
 	r.Run(":8080")
 }
