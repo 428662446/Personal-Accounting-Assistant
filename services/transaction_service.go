@@ -48,7 +48,7 @@ func (s *TransactionService) RecordTransaction(userID int64, transactionType str
 			return 0, err
 		}
 		if cid == 0 {
-			// 不存在则创建
+			// 不存在则创建（二次检查？）
 			newId, err := database.CreateCategory(userDB, category)
 			if err != nil {
 				return 0, err

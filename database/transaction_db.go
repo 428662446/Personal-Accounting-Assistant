@@ -70,7 +70,7 @@ func DeleteTransaction(userDB *sql.DB, transactionID int64) error {
 	return nil
 }
 
-// 4. 更新账单（支持可选字段）
+// 4. 更新账单
 func UpdateTransaction(userDB *sql.DB, transactionID int64, updateType *string, updateAmount *int64, updateCategoryID *int64, updateNote *string) error {
 
 	// 构建动态SQL
@@ -111,42 +111,6 @@ func UpdateTransaction(userDB *sql.DB, transactionID int64, updateType *string, 
 		return utils.WrapError(utils.ErrUpdateFailed, err)
 	}
 	return nil
-}
-
-// 统计相关业务
-// 1. 获取总收入(coalesce意味合并)
-func GetTotalIncome(userDB *sql.DB) (int64, error) {
-	var result int64
-	selectSQL := "SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE amount > 0 "
-	err := userDB.QueryRow(selectSQL).Scan(&result)
-	if err != nil {
-		return 0, utils.WrapError(utils.ErrQueryFailed, err)
-	}
-	return result, nil
-}
-
-// 2. 获取总支出
-func GetTotalExpenditure(userDB *sql.DB) (int64, error) {
-	var result int64
-	selectSQL := "SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE amount < 0 "
-	err := userDB.QueryRow(selectSQL).Scan(&result)
-	if err != nil {
-		return 0, utils.WrapError(utils.ErrQueryFailed, err)
-	}
-	return result, nil // 暂时返回负数
-}
-
-// 3. 获取净收入
-func GetNetIncome(userDB *sql.DB) (int64, error) {
-	totalexpenditure, err := GetTotalExpenditure(userDB)
-	if err != nil {
-		return 0, err
-	}
-	totalIncome, err := GetTotalIncome(userDB)
-	if err != nil {
-		return 0, err
-	}
-	return totalIncome + totalexpenditure, nil
 }
 
 // 添加: 获取单个交易的函数

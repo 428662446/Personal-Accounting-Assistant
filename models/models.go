@@ -30,3 +30,10 @@ type Category struct {
 	Name      string `json:"name"`
 	CreatedAt string `json:"created_at"`
 }
+
+type RangeAmountStat struct {
+	Name             string `json:"name"`
+	TransactionCount int    `json:"transaction_count"`
+	Amount           int64  `json:"amount"`
+	AmountStr        string `json:"amount_str"`
+}

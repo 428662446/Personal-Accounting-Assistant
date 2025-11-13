@@ -45,11 +45,17 @@ func main() {
 		authGroup.POST("/transaction", transactionHandler.RecordTransaction)
 		authGroup.GET("/transactions", transactionHandler.GetTransactions)
 		authGroup.POST("/logout", authHandler.LogoutUser) // 添加退出登录
-		authGroup.GET("/summary", statHandler.GetSummary)
+
 		authGroup.POST("/category", categoryHandler.CreateCategory)
 		authGroup.GET("/categories", categoryHandler.GetCategory)
 		authGroup.PUT("/category/:id", categoryHandler.UpdateCategory)    // 更新特定类别
 		authGroup.DELETE("/category/:id", categoryHandler.DeleteCategory) // 删除特定类别
+
+		authGroup.GET("/stats/summary", statHandler.GetSummary)
+		authGroup.GET("/stats/monthly", statHandler.GetMonthlyStats)
+		authGroup.GET("/stats/weekly", statHandler.GetWeeklyStats)
+		authGroup.GET("/stats/daily", statHandler.GetDailyStats)
+		authGroup.GET("/stats/range_amount", statHandler.GetRangeAmountStats)
 	}
 	r.Run(":8080")
 }
