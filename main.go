@@ -26,14 +26,14 @@ func main() {
 	userService := services.NewUserService(db)
 	transactionService := services.NewTransactionService(db)
 	statService := services.NewStatService(db)
-	categoryServic := services.NewCategoryService(db)
+	categoryService := services.NewCategoryService(db)
 	// 添加: 基于数据库的会话管理器
 	sessionManager := services.NewDBSessionManager(db)
 
 	authHandler := handlers.NewAuthHandler(userService, sessionManager)
 	transactionHandler := handlers.NewTransactionHandler(transactionService)
 	statHandler := handlers.NewStatHandler(statService)
-	categoryHandler := handlers.NewCategoryHandler(categoryServic)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
 	r := gin.Default()
 
 	r.POST("/register", authHandler.RegisterUser)

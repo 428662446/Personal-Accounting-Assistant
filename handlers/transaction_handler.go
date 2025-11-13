@@ -55,6 +55,12 @@ func (h *TransactionHandler) RecordTransaction(c *gin.Context) {
 		return
 	}
 
+	// 添加类型验证
+	if req.Type != "income" && req.Type != "expense" {
+		response.HandleError(c, utils.ErrInvalidTransactionType)
+		return
+	}
+
 	transactionId, err := h.transactionService.RecordTransaction(userID.(int64), req.Type, req.Amount, req.Category, req.Note)
 	if err != nil {
 		response.HandleError(c, err) // 使用统一的错误处理
@@ -131,6 +137,14 @@ func (h *TransactionHandler) UpdateTransaction(c *gin.Context) {
 	if err := c.ShouldBind(&req); err != nil {
 		response.HandleError(c, utils.ErrInvalidParameter)
 		return
+	}
+
+	// 添加类型验证
+	if req.Type != nil {
+		if *(req.Type) != "income" && *(req.Type) != "expense" {
+			response.HandleError(c, utils.ErrInvalidTransactionType)
+			return
+		}
 	}
 
 	err = h.transactionService.UpdateTransaction(
